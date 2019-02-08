@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-type StartTime time.Time
-
 type ThreadID int
 
 // Track records all track information
@@ -17,7 +15,7 @@ type Track struct {
 	Debug bool
 	mutex *sync.Mutex
 	idx   int
-	fn    map[ThreadID]StartTime
+	fn    map[ThreadID]time.Time
 }
 
 //
