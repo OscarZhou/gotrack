@@ -18,9 +18,11 @@ func main() {
 // Loop5 starts a 5s loop
 func Loop5(t *track.Track, c chan int) {
 	t.Start()
+	defer func(chan int) {
+		c <- 1
+	}(c)
 	defer t.End()
 	for i := 0; i < 5; i++ {
 		time.Sleep(time.Duration(1 * time.Second))
 	}
-	c <- 1
 }

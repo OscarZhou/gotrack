@@ -3,53 +3,75 @@ package track
 import (
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
 
-type ThreadID int
+// CallerName representing the caller function name
+type CallerName string
+
+const (
+	// PhaseStart stands for function start phase
+	PhaseStart = "Start"
+	// PhaseEnd stands for function end phase
+	PhaseEnd = "End"
+)
 
 // Track records all track information
 type Track struct {
-	Debug bool
-	mutex *sync.Mutex
-	idx   int
-	fn    map[ThreadID]time.Time
+	Debug   bool
+	mutex   *sync.Mutex
+	callers map[CallerName]time.Time
 }
 
 //
 func Default() *Track {
 	return &Track{
-		Debug: true,
-		mutex: &sync.Mutex{},
-		idx:   0,
+		Debug:   true,
+		mutex:   &sync.Mutex{},
+		callers: make(map[CallerName]time.Time),
 	}
 }
 
 //
 func (t *Track) Start() {
 	if t.Debug {
-		t.print()
+		curCaller := t.callerName()
+		t.callers[curCaller] = time.Now()
+		t.print(PhaseStart, curCaller, 0)
 	}
 }
 
 //
 func (t *Track) End() {
 	if t.Debug {
-		t.print()
+		curCaller := t.callerName()
+		elapsed := time.Since(t.callers[curCaller])
+		t.print(PhaseEnd, curCaller, elapsed)
+		delete(t.callers, curCaller)
 	}
 }
 
 //
-func (t *Track) print() {
+func (t *Track) print(p string, s CallerName, elapsed time.Duration) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	fpcs := make([]uintptr, 2)
-	_ = runtime.Callers(2, fpcs)
+	switch p {
+	case PhaseStart:
+		fmt.Printf("%s function:\t%v \n", p, string(s))
+	case PhaseEnd:
+		fmt.Printf("%s function:\t%v took %v \n", p, string(s), elapsed)
+	}
+}
+
+//
+func (t *Track) callerName() CallerName {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	fpcs := make([]uintptr, 1)
+	_ = runtime.Callers(3, fpcs)
 	caller := runtime.FuncForPC(fpcs[0])
-	actionName := caller.Name()[strings.LastIndex(caller.Name(), ".")+1:]
-	caller = runtime.FuncForPC(fpcs[1])
-	fmt.Printf("%s function:\t%s \n", actionName, caller.Name())
+	return CallerName(caller.Name())
 }
