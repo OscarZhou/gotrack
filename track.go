@@ -11,11 +11,11 @@ import (
 type CallerName string
 
 const (
-	// PhaseStart stands for function start phase
+	// PhaseStart stands for the start phase of the funtion
 	PhaseStart = "Start"
-	// PhaseInProgress stands for function is running
+	// PhaseInProgress stands that function is running
 	PhaseInProgress = "InProgress"
-	// PhaseEnd stands for function end phase
+	// PhaseEnd stands for the end phase of the function
 	PhaseEnd = "End"
 )
 
@@ -28,7 +28,7 @@ type Track struct {
 	tickers map[CallerName]*time.Ticker
 }
 
-//
+// Default returns a track handler to allow use Start() and End() method
 func Default() *Track {
 	return &Track{
 		Debug:   true,
@@ -39,7 +39,7 @@ func Default() *Track {
 	}
 }
 
-//
+// Start records the start of a function
 func (t *Track) Start() {
 	if t.Debug {
 		curCaller := t.callerName()
@@ -61,7 +61,7 @@ func (t *Track) inProgress(s CallerName) {
 	}
 }
 
-//
+// End records the end of the function
 func (t *Track) End() {
 	if t.Debug {
 		curCaller := t.callerName()
