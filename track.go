@@ -21,18 +21,30 @@ const (
 
 // Track records all track information
 type Track struct {
-	Debug   bool
-	AsynLog bool
+	Config
 	mutex   *sync.Mutex
 	callers map[CallerName]time.Time
 	tickers map[CallerName]*time.Ticker
 }
 
+// New creates a track handler based on custom configuration
+func New(config Config) *Track {
+	return &Track{
+		Config:  config,
+		mutex:   &sync.Mutex{},
+		callers: make(map[CallerName]time.Time),
+		tickers: make(map[CallerName]*time.Ticker),
+	}
+}
+
 // Default returns a track handler to allow use Start() and End() method
 func Default() *Track {
 	return &Track{
-		Debug:   true,
-		AsynLog: true,
+		Config: Config{
+			Debug:           true,
+			AsynLog:         true,
+			AsynLogInterval: 5,
+		},
 		mutex:   &sync.Mutex{},
 		callers: make(map[CallerName]time.Time),
 		tickers: make(map[CallerName]*time.Ticker),
@@ -54,7 +66,7 @@ func (t *Track) Start() {
 
 func (t *Track) inProgress(s CallerName) {
 	if t.Debug {
-		t.tickers[s] = time.NewTicker(time.Second)
+		t.tickers[s] = time.NewTicker(time.Duration(t.AsynLogInterval) * time.Second)
 		for range t.tickers[s].C {
 			t.print(PhaseInProgress, s, 0)
 		}
