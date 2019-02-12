@@ -3,7 +3,9 @@ package track
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -26,28 +28,24 @@ type Track struct {
 	mutex   *sync.Mutex
 	callers map[CallerName]time.Time
 	tickers map[CallerName]*time.Ticker
+	export  bool
 	Error   error
 }
 
 // New creates a track handler based on custom configuration
 func New(config Config) *Track {
-	var (
-		f   *os.File
-		err error
-	)
-
-	if config.ExportedPath != "" {
-		f, err = os.Create(config.ExportedPath)
-		defer f.Close()
-	}
-
-	return &Track{
+	t := &Track{
 		Config:  config,
 		mutex:   &sync.Mutex{},
 		callers: make(map[CallerName]time.Time),
 		tickers: make(map[CallerName]*time.Ticker),
-		Error:   err,
 	}
+
+	if config.ExportedPath != "" {
+		t.export = true
+		t.Error = checkPath(config.ExportedPath)
+	}
+	return t
 }
 
 // Default returns a track handler to allow use Start() and End() method
@@ -133,4 +131,27 @@ func (t *Track) callerName() CallerName {
 	_ = runtime.Callers(3, fpcs)
 	caller := runtime.FuncForPC(fpcs[0])
 	return CallerName(caller.Name())
+}
+
+func checkPath(p string) error {
+	p = filepath.FromSlash(p)
+	if strings.ContainsRune(p, os.PathSeparator) {
+		lastSlash := strings.LastIndex(p, string(os.PathSeparator))
+		if lastSlash > 0 {
+			dir := p[0:lastSlash]
+			fmt.Println(dir)
+
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				if err := os.MkdirAll(p, os.ModePerm); err != nil {
+					return err
+				}
+			}
+		}
+
+		_, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
