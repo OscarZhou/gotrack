@@ -2,6 +2,7 @@ package track
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -25,15 +26,27 @@ type Track struct {
 	mutex   *sync.Mutex
 	callers map[CallerName]time.Time
 	tickers map[CallerName]*time.Ticker
+	Error   error
 }
 
 // New creates a track handler based on custom configuration
 func New(config Config) *Track {
+	var (
+		f   *os.File
+		err error
+	)
+
+	if config.ExportedPath != "" {
+		f, err = os.Create(config.ExportedPath)
+		defer f.Close()
+	}
+
 	return &Track{
 		Config:  config,
 		mutex:   &sync.Mutex{},
 		callers: make(map[CallerName]time.Time),
 		tickers: make(map[CallerName]*time.Ticker),
+		Error:   err,
 	}
 }
 
@@ -92,14 +105,23 @@ func (t *Track) print(p string, s CallerName, elapsed time.Duration) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
+	info := ""
 	switch p {
 	case PhaseStart:
-		fmt.Printf("%s function:\t%v \n", p, string(s))
+		info = fmt.Sprintf("%s function:\t%v \n", p, string(s))
 	case PhaseInProgress:
-		fmt.Printf("%s function:\t%v \n", p, string(s))
+		info = fmt.Sprintf("%s function:\t%v \n", p, string(s))
 	case PhaseEnd:
-		fmt.Printf("%s function:\t%v took %v \n", p, string(s), elapsed)
+		info = fmt.Sprintf("%s function:\t%v took %v \n", p, string(s), elapsed)
 	}
+
+	f, err := os.OpenFile(t.ExportedPath, os.O_APPEND|os.O_WRONLY, 0666)
+	defer f.Close()
+	if err != nil {
+		t.Error = err
+		return
+	}
+	f.WriteString(info)
 }
 
 //

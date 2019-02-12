@@ -8,4 +8,6 @@ type Config struct {
 	AsynLog bool
 	// AsynLogInterval The interval of the asynchronous log
 	AsynLogInterval int
+	// ExportedPath Set a path where the exported log can be placed
+	ExportedPath string
 }
