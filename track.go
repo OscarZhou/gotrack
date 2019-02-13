@@ -139,10 +139,9 @@ func checkPath(p string) error {
 		lastSlash := strings.LastIndex(p, string(os.PathSeparator))
 		if lastSlash > 0 {
 			dir := p[0:lastSlash]
-			fmt.Println(dir)
-
+			_ = os.MkdirAll(dir, os.ModePerm)
 			if _, err := os.Stat(p); os.IsNotExist(err) {
-				if err := os.MkdirAll(p, os.ModePerm); err != nil {
+				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 					return err
 				}
 			}
