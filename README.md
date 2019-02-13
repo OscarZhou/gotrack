@@ -46,3 +46,15 @@ func Loop5(t *track.Track) {
 
 
 ### This project will keep updating and welcome to pull request.  
+
+
+
+
+### To-do list
+
+
+:white_large_square:  Callback interface for log hook  
+:white_large_square:  Export file  
+:white_check_mark: Multi-thread call   
+:white_check_mark: Asynchronous interval log  
+

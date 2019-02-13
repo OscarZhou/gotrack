@@ -2,7 +2,10 @@ package track
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -25,16 +28,24 @@ type Track struct {
 	mutex   *sync.Mutex
 	callers map[CallerName]time.Time
 	tickers map[CallerName]*time.Ticker
+	export  bool
+	Error   error
 }
 
 // New creates a track handler based on custom configuration
 func New(config Config) *Track {
-	return &Track{
+	t := &Track{
 		Config:  config,
 		mutex:   &sync.Mutex{},
 		callers: make(map[CallerName]time.Time),
 		tickers: make(map[CallerName]*time.Ticker),
 	}
+
+	if config.ExportedPath != "" {
+		t.export = true
+		t.Error = checkPath(config.ExportedPath)
+	}
+	return t
 }
 
 // Default returns a track handler to allow use Start() and End() method
@@ -92,14 +103,23 @@ func (t *Track) print(p string, s CallerName, elapsed time.Duration) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
+	info := ""
 	switch p {
 	case PhaseStart:
-		fmt.Printf("%s function:\t%v \n", p, string(s))
+		info = fmt.Sprintf("%s function:\t%v \n", p, string(s))
 	case PhaseInProgress:
-		fmt.Printf("%s function:\t%v \n", p, string(s))
+		info = fmt.Sprintf("%s function:\t%v \n", p, string(s))
 	case PhaseEnd:
-		fmt.Printf("%s function:\t%v took %v \n", p, string(s), elapsed)
+		info = fmt.Sprintf("%s function:\t%v took %v \n", p, string(s), elapsed)
 	}
+
+	f, err := os.OpenFile(t.ExportedPath, os.O_APPEND|os.O_WRONLY, 0666)
+	defer f.Close()
+	if err != nil {
+		t.Error = err
+		return
+	}
+	f.WriteString(info)
 }
 
 //
@@ -111,4 +131,26 @@ func (t *Track) callerName() CallerName {
 	_ = runtime.Callers(3, fpcs)
 	caller := runtime.FuncForPC(fpcs[0])
 	return CallerName(caller.Name())
+}
+
+func checkPath(p string) error {
+	p = filepath.FromSlash(p)
+	if strings.ContainsRune(p, os.PathSeparator) {
+		lastSlash := strings.LastIndex(p, string(os.PathSeparator))
+		if lastSlash > 0 {
+			dir := p[0:lastSlash]
+			_ = os.MkdirAll(dir, os.ModePerm)
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+					return err
+				}
+			}
+		}
+
+		_, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
