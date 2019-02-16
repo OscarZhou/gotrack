@@ -2,15 +2,19 @@ package main
 
 import (
 	track "gotrack"
+	"log"
 	"time"
 )
 
 func main() {
-	t := track.New(track.Config{
+	t, err := track.New(track.Config{
 		Debug:           true,
 		AsynLog:         true,
 		AsynLogInterval: 2,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	c := make(chan int, 2)
 	go Loop8(t, c)
 	go Loop10(t, c)

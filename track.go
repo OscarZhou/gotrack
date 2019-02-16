@@ -33,7 +33,7 @@ type Track struct {
 }
 
 // New creates a track handler based on custom configuration
-func New(config Config) *Track {
+func New(config Config) (*Track, error) {
 	t := &Track{
 		Config:  config,
 		mutex:   &sync.Mutex{},
@@ -45,7 +45,7 @@ func New(config Config) *Track {
 		t.export = true
 		t.Error = checkPath(config.ExportedPath)
 	}
-	return t
+	return t, t.Error
 }
 
 // Default returns a track handler to allow use Start() and End() method
@@ -113,13 +113,16 @@ func (t *Track) print(p string, s CallerName, elapsed time.Duration) {
 		info = fmt.Sprintf("%s function:\t%v took %v \n", p, string(s), elapsed)
 	}
 
-	f, err := os.OpenFile(t.ExportedPath, os.O_APPEND|os.O_WRONLY, 0666)
-	defer f.Close()
-	if err != nil {
-		t.Error = err
-		return
+	fmt.Printf("%s", info)
+	if t.ExportedPath != "" {
+		f, err := os.OpenFile(t.ExportedPath, os.O_APPEND|os.O_WRONLY, 0666)
+		defer f.Close()
+		if err != nil {
+			t.Error = err
+			return
+		}
+		f.WriteString(info)
 	}
-	f.WriteString(info)
 }
 
 //

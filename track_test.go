@@ -16,14 +16,13 @@ End function:	gotrack.TestTrackExportedFile took 2.0114ms `
 			t.Error(err)
 		}
 	}
-	track := New(Config{
+	track, err := New(Config{
 		Debug:   true,
 		AsynLog: false,
 		// Note ./ stands for the directory where the current file places
 		ExportedPath: path,
 	})
-
-	if track.Error != nil {
+	if err != nil {
 		t.Error("error=", track.Error)
 	}
 

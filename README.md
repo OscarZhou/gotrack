@@ -54,7 +54,7 @@ func Loop5(t *track.Track) {
 
 
 :white_large_square:  Callback interface for log hook  
-:white_large_square:  Export file  
+:white_check_mark:  Export file  
 :white_check_mark: Multi-thread call   
 :white_check_mark: Asynchronous interval log  
 
